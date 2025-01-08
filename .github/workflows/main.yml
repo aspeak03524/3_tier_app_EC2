@@ -1,0 +1,96 @@
+name: CI/CD Pipeline for 3-Tier Web Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Job for Continuous Integration (CI)
+  ci:
+    name: Build, Test, Scan, and Dockerize
+    runs-on: self-hosted
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      # Set up JDK for the backend if necessary (you can modify based on your backend tech stack)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      # Build and test the backend (modify if your backend needs different build steps)
+      - name: Build and Test Backend
+        run: |
+          cd Basic3Tier.API
+          ./mvnw clean install  # Adjust for your .NET project if necessary
+
+      # Build and test the frontend (modify if different steps needed for frontend)
+      - name: Build and Test Frontend
+        run: |
+          cd Basic3Tier.UI
+          npm install
+          npm test  # Modify if using a different testing framework
+
+      # Build the Docker images for both frontend and backend
+      - name: Build Docker images
+        run: |
+          # Build Docker images for frontend and backend
+          docker build -t myusername/frontend:latest ./Basic3Tier.UI
+          docker build -t myusername/backend:latest ./Basic3Tier.API
+
+      # Log in to DockerHub
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Push Docker images to DockerHub
+      - name: Push Docker images
+        run: |
+          docker push myusername/frontend:latest
+          docker push myusername/backend:latest
+
+  # Job for Continuous Delivery (CD)
+  cd:
+    name: Deploy to EC2 Instance
+    runs-on: self-hosted
+    needs: ci
+
+    steps:
+      # Set up SSH to EC2 (use secrets for secure authentication)
+      - name: Set up SSH key for EC2
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+
+      # Connect to EC2 and deploy using Docker Compose (or Docker commands)
+      - name: Deploy to EC2 using Docker
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+            # Pull the latest frontend and backend images from DockerHub
+            docker pull myusername/frontend:latest
+            docker pull myusername/backend:latest
+
+            # Stop and remove existing containers if they exist
+            docker stop frontend || true && docker rm frontend || true
+            docker stop backend || true && docker rm backend || true
+
+            # Create Docker containers for frontend and backend
+            docker run -d -p 80:80 --name frontend myusername/frontend:latest
+            docker run -d -p 8080:8080 --name backend myusername/backend:latest
+
+            # Optionally, run using Docker Compose if you prefer
+            # docker-compose up -d
+          EOF
