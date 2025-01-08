@@ -18,6 +18,9 @@ jobs:
       # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
 
       # Set up JDK for the backend if necessary (you can modify based on your backend tech stack)
       - name: Set up JDK 17
@@ -66,10 +69,6 @@ jobs:
     needs: ci
 
     steps:
-      # Checkout the code (needed in the second job too)
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       # Set up SSH to EC2 (use secrets for secure authentication)
       - name: Set up SSH key for EC2
         uses: webfactory/ssh-agent@v0.5.3
@@ -83,6 +82,10 @@ jobs:
             # Pull the latest frontend and backend images from DockerHub
             docker pull myusername/frontend:latest
             docker pull myusername/backend:latest
+
+            # Stop and remove existing containers if they exist
+            docker stop frontend || true && docker rm frontend || true
+            docker stop backend || true && docker rm backend || true
 
             # Create Docker containers for frontend and backend
             docker run -d -p 80:80 --name frontend myusername/frontend:latest
