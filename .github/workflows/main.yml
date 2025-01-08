@@ -12,7 +12,7 @@ jobs:
   # Job for Continuous Integration (CI)
   ci:
     name: Build, Test, Scan, and Dockerize
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       # Checkout the code
@@ -62,7 +62,7 @@ jobs:
   # Job for Continuous Delivery (CD)
   cd:
     name: Deploy to EC2 Instance
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: ci
 
     steps:
