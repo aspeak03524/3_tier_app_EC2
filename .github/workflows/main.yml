@@ -32,13 +32,13 @@ jobs:
       # Build and test the backend (modify if your backend needs different build steps)
       - name: Build and Test Backend
         run: |
-          cd Basic3Tier.API
+          cd 3-tier-application/Basic3Tier.API
           ./mvnw clean install  # Adjust for your .NET project if necessary
 
       # Build and test the frontend (modify if different steps needed for frontend)
       - name: Build and Test Frontend
         run: |
-          cd Basic3Tier.UI
+          cd 3-tier-application/Basic3Tier.UI
           npm install
           npm test  # Modify if using a different testing framework
 
